@@ -6,6 +6,20 @@ $(document).ready( function() {
 		var tags = $(this).find("input[name='tags']").val();
 		getUnanswered(tags);
 	});
+
+	//creating fucntion to get the top answers
+	$('.inspiration-getter').submit(function()
+	{
+		// zero out results if previous search has run
+		$('.results').html('');
+		//get the value of the tags the user submitted
+		var tags=$(this).find("input[name='answerers']").val();
+		//added console for debugging
+		//console.log(tags);
+		getTopanswer(tags);
+
+
+	});
 });
 
 // this function takes the question object returned by StackOverflow 
@@ -30,12 +44,37 @@ var showQuestion = function(question) {
 	viewed.text(question.view_count);
 
 	// set some properties related to asker
-	var asker = result.find('.asker');
+	/*var asker = result.find('.asker');
 	asker.html('<p>Name: <a target="_blank" href=http://stackoverflow.com/users/' + question.owner.user_id + ' >' +
 													question.owner.display_name +
 												'</a>' +
 							'</p>' +
  							'<p>Reputation: ' + question.owner.reputation + '</p>'
+	);*/
+
+	return result;
+};
+
+
+// this function takes the question object returned by StackOverflow 
+// and creates new result to be appended to DOM
+var showAnswers = function(answerer) {
+	
+	// clone our result template code
+	var result = $('.templates .answer').clone();
+	
+	// Set the question properties in result
+	var answerelem = result.find('.Profile_Image img');
+	answerelem.attr('src', answerer.user.profile_image);
+	answerelem.text(answerer.user.display_name);
+
+	// set some properties related to asker
+	var asker = result.find('.Name');
+	asker.html('<p>User Profile: <a target="_blank" href=http://stackoverflow.com/users/' + answerer.user.user_id + ' >' +
+													answerer.user.link +
+												'</a>' +
+							'</p>'+
+		'<p>Reputation: ' + answerer.user.reputation + '</p>'
 	);
 
 	return result;
@@ -87,6 +126,45 @@ var getUnanswered = function(tags) {
 		$('.search-results').append(errorElem);
 	});
 };
+
+//takes the string of semicolon seperated tags to be searched for top answers
+var getTopanswer=function(tags)
+{
+	//creating the Request Object
+	var request={
+	tag:tags,	
+	period:"all_time",
+	site:'stackoverflow'};
+
+	console.log(request);
+
+	var result=$.ajax({
+		url:"http://api.stackexchange.com/2.2/tags/"+request.tag+"/top-answerers/"+request.period,
+		data:request,
+		dataType:"jsonp",
+		type:"GET",
+	})
+	.done(function(result)
+	{
+		var searchResults = showSearchResults(request.tag, result.items.length);
+
+		$('.search-results').html(searchResults);
+
+		$.each(result.items, function(i, item) {
+			var answerer = showAnswers(item);
+			$('.results').append(answerer);
+		})
+	})	
+	.fail(
+		function(jqXHR, error, errorThrown){
+		var errorElem = showError(error);
+		$('.search-results').append(errorElem);
+	});
+
+
+};
+
+
 
 
 
